@@ -1,0 +1,50 @@
+{
+  "name": "speech-dataset-builder",
+  "private": true,
+  "version": "2.1.0",
+  "author": "Liam Dyer <liamcdyer@gmail.com>",
+  "license": "MIT",
+  "main": "dist-electron/electron/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && electron-builder",
+    "postinstall": "patch-package && electron-builder install-app-deps"
+  },
+  "engines": {
+    "node": "^14.18.0 || >=16.0.0"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.10.4",
+    "@emotion/styled": "^11.10.4",
+    "lese": "^1.0.0-rc3",
+    "music-metadata": "^8.1.0",
+    "naudiodon": "^2.3.6",
+    "node-gyp": "^9.3.0",
+    "rc-virtual-list": "^3.4.10",
+    "wav": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.8.5",
+    "@types/react": "^18.0.21",
+    "@types/react-dom": "^18.0.6",
+    "@types/wav": "^1.0.1",
+    "@vitejs/plugin-react": "^2.1.0",
+    "electron": "^21.1.1",
+    "electron-builder": "^23.6.0",
+    "patch-package": "^6.4.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sass": "^1.55.0",
+    "typescript": "^5.0.0-dev.20221122",
+    "vite": "^3.1.8",
+    "vite-electron-plugin": "^0.4.6"
+  },
+  "debug": {
+    "env": {
+      "VITE_DEV_SERVER_URL": "http://127.0.0.1:7777"
+    }
+  },
+  "overrides": {
+    "nan": "^2.17.0"
+  }
+}
