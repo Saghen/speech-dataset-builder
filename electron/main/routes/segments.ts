@@ -65,7 +65,7 @@ const assertPromptsExist = (rootPath: string) => assertPathExists(getPromptsPath
 
 const getRecordingPath = (rootPath: string, index: number) => path.join(rootPath, `wavs/${index}.wav`)
 const getRecordingDuration = (path: string) =>
-  import('../../../../node_modules/music-metadata').then((mm) => mm.parseFile(path)).then((val) => val.format.duration)
+  import('music-metadata').then((mm) => mm.parseFile(path)).then((val) => val.format.duration)
 
 // Routes
 export enum Endpoints {
