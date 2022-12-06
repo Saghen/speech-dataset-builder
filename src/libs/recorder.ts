@@ -5,14 +5,15 @@ import { useEffect, useState } from 'react'
 export const useRecorder = (selectedDir: string, onRecordingError: (err: any) => void) => {
   const { data: segmentsInitial, error } = useFetch('/segments/list', { rootPath: selectedDir })
   const [segments, setSegments] = useState<SegmentDetails[]>()
-  const [segmentIndex, setSegmentIndex] = useState(0)
+  const [segmentIndex, setSegmentIndexInternal] = useState(0)
   const [recordingStartDate, setRecordingStartDate] = useState<Date | undefined>()
+
+  const setSegmentIndex = (index: number) => setSegmentIndexInternal(Math.min(segments?.length ?? 0, Math.max(0, index)))
 
   useEffect(() => {
     if (!segmentsInitial) return
     setSegments(segmentsInitial)
     setSegmentIndex(segmentsInitial.findIndex((segment) => !segment.hasRecording))
-    console.log(segmentsInitial.filter(segment => segment.hasRecording).map(segment => segment.recordingDuration))
   }, [segmentsInitial])
 
   if (!segments && !error) return {}
@@ -50,7 +51,7 @@ export const useRecorder = (selectedDir: string, onRecordingError: (err: any) =>
 }
 
 export const useRecordingDuration = (recordingStartDate: Date | undefined) => {
-  const [_, forceRerender] = useState(false)
+  const [, forceRerender] = useState(false)
   useEffect(() => {
     const intervalId = setInterval(() => forceRerender((val) => !val), 100)
     return () => clearInterval(intervalId)

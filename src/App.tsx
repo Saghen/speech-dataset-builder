@@ -1,11 +1,13 @@
 import { Button, Typography } from '@/components'
 import styled from '@emotion/styled'
-import type { Segment, SegmentDetails } from 'electron/main/routes/segments'
+import type { SegmentDetails } from 'electron/main/routes/segments'
 import { Column, Grid, Row } from 'lese'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { usePlayer } from './libs/player'
 import { useRecorder, useRecordingDuration } from './libs/recorder'
 import { fetch } from './router/fetch'
 import { formatNumberDuration } from './utils'
+import List, { ListRef } from 'rc-virtual-list'
 
 const App: React.FC = () => {
   const [selectedDir, setSelectedDir] = useState<string | undefined>()
@@ -32,8 +34,9 @@ const Record: React.FC<{ selectedDir: string; clearSelectedDir: () => void }> = 
 }) => {
   const [recordingError, setRecordingError] = useState()
   const recorder = useRecorder(selectedDir, setRecordingError)
+  const player = usePlayer()
 
-  const toggleRecording = async () => {
+  const toggleRecording = useCallback(async () => {
     if (!recorder.segments) return
     if (!recorder.isRecording) return recorder.start(recorder.segmentIndex)
     await recorder.stop()
@@ -43,7 +46,25 @@ const Record: React.FC<{ selectedDir: string; clearSelectedDir: () => void }> = 
         recorder.segmentIndex +
         1
     )
-  }
+  }, [recorder])
+
+  const handleShortcuts = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.altKey) return
+      if (e.key === 'r') toggleRecording()
+      if (e.key === 'w' || e.key === 'a') recorder.setSegmentIndex?.((recorder.segmentIndex ?? 0) - 1)
+      if (e.key === 's' || e.key === 'd') recorder.setSegmentIndex?.((recorder.segmentIndex ?? 0) + 1)
+      if (e.key === 'l') {
+        if (player.getIsPlaying()) player.pause()
+        else player.play(recorder.segments?.[recorder.segmentIndex].recordingPath!)
+      }
+    },
+    [recorder, toggleRecording]
+  )
+  useEffect(() => {
+    window.addEventListener('keypress', handleShortcuts)
+    return () => window.removeEventListener('keypress', handleShortcuts)
+  }, [handleShortcuts])
 
   return (
     <Grid rows="60px 1fr auto" columns="1fr 1fr 1fr" xAlign="space-between" gap="16px">
@@ -76,7 +97,7 @@ const Record: React.FC<{ selectedDir: string; clearSelectedDir: () => void }> = 
         style={{ justifySelf: 'end' }}
       />
       {!recorder.segments && !recorder.error && (
-        <Typography fontSize="32px" align>
+        <Typography fontSize="32px" align style={{ gridColumn: '1 / -1' }}>
           Loading segments...
         </Typography>
       )}
@@ -86,9 +107,13 @@ const Record: React.FC<{ selectedDir: string; clearSelectedDir: () => void }> = 
             segments={recorder.segments}
             segmentIndex={recorder.segmentIndex}
             onSegmentSelect={recorder.setSegmentIndex}
-            style={{ gridColumn: '1/-1' }}
+            style={{ gridColumn: '1 / -1' }}
           />
-          <Button onClick={() => fetch('/segments/export-metadata', { recordingPath: selectedDir })} background="transparent" style={{ alignSelf: "end", justifySelf: "start" }}>
+          <Button
+            onClick={() => fetch('/segments/export-metadata', { recordingPath: selectedDir })}
+            background="transparent"
+            style={{ alignSelf: 'end', justifySelf: 'start' }}
+          >
             Export segments
           </Button>
           <RecordButton
@@ -222,7 +247,7 @@ const ActiveSegment = styled(Typography)`
   user-select: none;
 `
 
-const SegmentListContainer = styled(Column)<{ atTop: boolean; atBottom: boolean }>`
+const SegmentListContainer = styled(List<SegmentDetails>)<{ atTop: boolean; atBottom: boolean }>`
   overflow-y: scroll;
   ::-webkit-scrollbar {
     display: none;
@@ -243,54 +268,41 @@ const SegmentsList: React.FC<{
   onSegmentSelect: (index: number) => void
   style?: React.HTMLAttributes<HTMLDivElement>['style']
 }> = ({ segmentIndex, segments, onSegmentSelect, style }) => {
-  const [isFirstScroll, setIsFirstScroll] = useState(true)
-  const listRef = useRef<HTMLDivElement>(null)
-
-  const updateScroll = useCallback(
-    (avoidSmooth?: boolean) => {
-      if (!listRef.current) return
-      console.log(isFirstScroll, avoidSmooth)
-      listRef.current.children[segmentIndex].scrollIntoView({
-        behavior: isFirstScroll || avoidSmooth ? 'auto' : 'smooth',
-        block: 'center',
-      })
-      listRef.current.style.visibility = 'visible'
-      if (isFirstScroll) setIsFirstScroll(false)
-    },
-    [isFirstScroll, listRef.current, segmentIndex]
-  )
+  const listRef = useRef<ListRef>(null)
 
   useEffect(() => {
-    // Resize observer fires immediately once observe is called so ignore first call
-    let isFirst = true
-    const observer = new ResizeObserver(() => {
-      updateScroll(!isFirst)
-      isFirst = false
+    if (!listRef.current) return
+    listRef.current.scrollTo({
+      index: segmentIndex,
+      offset: window.innerHeight / 2 - 160,
+      align: 'top',
     })
-    observer.observe(document.body)
-    return () => observer.disconnect()
-  }, [updateScroll])
+  }, [segmentIndex, listRef.current])
 
   return (
     <SegmentListContainer
+      data={segments}
+      itemKey={(segment) => segment.index}
       atTop={segmentIndex <= 2}
       atBottom={segmentIndex >= segments.length - 2}
       ref={listRef}
-      style={{ ...style, visibility: 'hidden' }}
+      style={style}
+      height={770}
+      itemHeight={48}
     >
-      {segments.map((segment) =>
+      {(segment) =>
         segment.index === segmentIndex ? (
-          <ActiveSegment key={segment.index}>
+          <ActiveSegment>
             {segment.hasRecording ? '✓ ' : ''}
             {segment.prompt}
           </ActiveSegment>
         ) : (
-          <InactiveSegment key={segment.index} onClick={() => onSegmentSelect(segment.index)}>
+          <InactiveSegment onClick={() => onSegmentSelect(segment.index)}>
             {segment.hasRecording ? '✓ ' : ''}
             {segment.prompt}
           </InactiveSegment>
         )
-      )}
+      }
     </SegmentListContainer>
   )
 }
