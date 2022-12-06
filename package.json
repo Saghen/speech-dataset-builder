@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && electron-builder",
-    "postinstall": "patch-package && electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps"
   },
   "engines": {
     "node": "^14.18.0 || >=16.0.0"
@@ -31,7 +31,6 @@
     "@vitejs/plugin-react": "^2.1.0",
     "electron": "^21.1.1",
     "electron-builder": "^23.6.0",
-    "patch-package": "^6.4.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sass": "^1.55.0",
